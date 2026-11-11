@@ -1,0 +1,6 @@
+__pycache__
+*.pyc
+.env
+chat.db
+chroma_store
+.git

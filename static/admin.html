@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>CampusBot Admin</title>
+<style>
+  :root { --ink:#1b2b4b; --soft:#5a6785; --line:#d6dce8; --bg:#eef1f6; --accent:#e0a526; }
+  body { font-family: "Segoe UI", system-ui, Arial, sans-serif; background: var(--bg); color: var(--ink); margin: 0; padding: 20px; }
+  main { max-width: 640px; margin: 0 auto; }
+  section { background: #fff; border: 1px solid var(--line); border-radius: 12px; padding: 16px; margin-bottom: 16px; }
+  h1 { font-size: 1.3rem; } h2 { font-size: 1rem; margin-top: 0; }
+  input, button { font: inherit; padding: 9px 12px; border-radius: 8px; border: 1px solid var(--line); max-width: 100%; }
+  button { background: var(--ink); color: #fff; border: 0; cursor: pointer; font-weight: 600; }
+  input:focus-visible, button:focus-visible { outline: 3px solid var(--accent); outline-offset: 2px; }
+  .row { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+  .msg { margin-top: 10px; color: var(--soft); font-size: 0.9rem; }
+  ul { padding-left: 18px; margin: 6px 0; }
+</style>
+</head>
+<body>
+<main>
+  <h1>CampusBot admin</h1>
+
+  <section>
+    <h2>Admin token</h2>
+    <div class="row">
+      <input type="password" id="token" placeholder="Enter admin token" aria-label="Admin token">
+      <button id="load" type="button">Load stats</button>
+    </div>
+  </section>
+
+  <section>
+    <h2>Upload a document</h2>
+    <div class="row">
+      <input type="file" id="file" accept=".pdf,.txt,.md" aria-label="Document file">
+      <button id="upload" type="button">Upload</button>
+    </div>
+    <div class="msg" id="uploadMsg"></div>
+  </section>
+
+  <section>
+    <h2>Knowledge base</h2>
+    <div id="stats" class="msg">Enter your token and select Load stats.</div>
+  </section>
+</main>
+
+<script>
+  const $ = (id) => document.getElementById(id);
+  const headers = () => ({ "X-Admin-Token": $("token").value });
+
+  async function loadStats() {
+    const res = await fetch("/admin/stats", { headers: headers() });
+    if (!res.ok) { $("stats").textContent = "Could not load stats. Check your token."; return; }
+    const d = await res.json();
+    const bad = d.feedback.recent_bad.map((b) => "<li>" + escapeHtml(b.question) + "</li>").join("") || "<li>None</li>";
+    $("stats").innerHTML =
+      "<p><strong>" + d.documents.length + "</strong> documents, <strong>" + d.chunks + "</strong> chunks</p>" +
+      "<ul>" + d.documents.map((x) => "<li>" + escapeHtml(x) + "</li>").join("") + "</ul>" +
+      "<p>Helpful: <strong>" + d.feedback.up + "</strong>, Not helpful: <strong>" + d.feedback.down + "</strong></p>" +
+      "<p>Recent questions marked not helpful:</p><ul>" + bad + "</ul>";
+  }
+
+  function escapeHtml(t) {
+    const d = document.createElement("div"); d.textContent = t; return d.innerHTML;
+  }
+
+  async function upload() {
+    const f = $("file").files[0];
+    if (!f) { $("uploadMsg").textContent = "Choose a file first."; return; }
+    const body = new FormData(); body.append("file", f);
+    $("uploadMsg").textContent = "Uploading...";
+    const res = await fetch("/admin/upload", { method: "POST", headers: headers(), body });
+    if (res.ok) {
+      const d = await res.json();
+      $("uploadMsg").textContent = "Added " + d.file + " (" + d.chunks + " chunks).";
+      loadStats();
+    } else {
+      $("uploadMsg").textContent = "Upload failed. Check your token and file type.";
+    }
+  }
+
+  $("load").onclick = loadStats;
+  $("upload").onclick = upload;
+</script>
+</body>
+</html>
