@@ -2,7 +2,7 @@
 
 An AI chatbot that answers student questions about admissions, fees, exams, and hostels using a college's own documents (Retrieval-Augmented Generation).
 
-**Live demo:** _add your Render link here_
+   **Live demo:** https://campusbot-lr7z.onrender.com
 
 ## Features
 - Answers only from uploaded college documents, with source references
